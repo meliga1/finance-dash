@@ -1,7 +1,15 @@
-// Portfolio feature types — populated in domain implementation
+import type { CurrencyCode, PriceChange } from '@/types/common'
 
-export type PortfolioSummary = {
+// GET /portfolio/summary
+export interface PortfolioSummary {
   totalValue: number
-  dailyChange: number
-  dailyChangePercent: number
+  change24h: PriceChange
+  estimatedProfit: PriceChange
+  currency: CurrencyCode
+}
+
+// GET /portfolio/history
+export interface PortfolioHistoryPoint {
+  date: string // "YYYY-MM"
+  value: number
 }

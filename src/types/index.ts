@@ -1,4 +1,6 @@
-// Shared application types — feature-specific types live in each feature's types.ts
+// Tipos compartilhados da aplicação — tipos por feature vivem no types.ts de cada feature
+
+export type { CurrencyCode, PriceChange } from './common'
 
 export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
 

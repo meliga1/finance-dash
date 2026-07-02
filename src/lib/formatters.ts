@@ -1,4 +1,7 @@
-export type Currency = 'BRL' | 'USD'
+import type { CurrencyCode } from '@/types/common'
+
+/** Alias para o tipo canônico do contrato (`CurrencyCode`). */
+export type Currency = CurrencyCode
 
 const LOCALE = 'pt-BR'
 

@@ -1,0 +1,1 @@
+export { getAssets } from './assetsService'

@@ -1,9 +1,9 @@
-// News feature types — populated in domain implementation
-
-export type NewsItem = {
+// GET /news
+export interface NewsItem {
   id: string
   title: string
+  summary: string
   source: string
-  publishedAt: string
   url: string
+  publishedAt: string // ISO datetime UTC
 }
