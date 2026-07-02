@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import type { Currency } from '@/lib/formatters'
 
-export type Currency = 'BRL' | 'USD'
+export type { Currency }
 
 type LayoutContextValue = {
   currency: Currency
