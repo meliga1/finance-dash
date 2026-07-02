@@ -25,6 +25,11 @@ const percentFormatter = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 2,
 })
 
+const numberFormatter = new Intl.NumberFormat(LOCALE, {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 8,
+})
+
 const compactFormatters: Record<Currency, Intl.NumberFormat> = {
   BRL: new Intl.NumberFormat(LOCALE, {
     style: 'currency',
@@ -48,6 +53,12 @@ export function formatCurrency(value: number, currency: Currency = 'BRL'): strin
 export function formatCurrencyCompact(value: number, currency: Currency = 'BRL'): string {
   if (!Number.isFinite(value)) return '—'
   return compactFormatters[currency].format(value)
+}
+
+/** Formata quantidades (não-monetárias), ex.: 0,23 BTC ou 9.000 ADA. */
+export function formatNumber(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  return numberFormatter.format(value)
 }
 
 type FormatPercentOptions = {
