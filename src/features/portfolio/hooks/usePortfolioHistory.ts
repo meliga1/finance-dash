@@ -7,5 +7,6 @@ export function usePortfolioHistory(currency: CurrencyCode, months = 12) {
   return useQuery({
     queryKey: portfolioKeys.history(currency, months),
     queryFn: () => getPortfolioHistory(currency, months),
+    staleTime: 10 * 60_000,
   })
 }

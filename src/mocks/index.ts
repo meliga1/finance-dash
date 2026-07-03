@@ -1,5 +1,2 @@
 export { delay, MOCK_LATENCY_MS } from './latency'
-export { getAssetsMock, PORTFOLIO_TOTAL_BRL } from './assets'
-export { getPortfolioSummaryMock, getPortfolioHistoryMock } from './portfolio'
 export { getNewsMock } from './news'
-export { convertFromBRL, BRL_PER_USD } from './rates'
