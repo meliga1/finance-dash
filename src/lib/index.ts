@@ -4,6 +4,8 @@ export {
   formatCurrency,
   formatCurrencyCompact,
   formatNumber,
+  formatMonthLabel,
+  formatDate,
   formatPercent,
 } from './formatters'
 export type { Currency } from './formatters'

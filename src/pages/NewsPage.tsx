@@ -1,7 +1,13 @@
-import { PlaceholderPage } from '@/components/layout/PlaceholderPage'
+import { NewsList } from '@/features/news/components'
 
 export function NewsPage() {
   return (
-    <PlaceholderPage description="Notícias e indicadores de mercado relevantes para sua carteira." />
+    <div className="space-y-6">
+      <p className="max-w-2xl text-body text-text-secondary">
+        Notícias e movimentos de mercado relevantes para a sua carteira.
+      </p>
+
+      <NewsList limit={10} />
+    </div>
   )
 }
