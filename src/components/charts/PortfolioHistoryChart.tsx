@@ -1,0 +1,128 @@
+import { useMemo } from 'react'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { useLayout } from '@/components/layout/layout-context'
+import { usePortfolioHistory } from '@/features/portfolio/hooks'
+import { formatCurrency, formatCurrencyCompact, formatMonthLabel } from '@/lib/formatters'
+import { CHART_COLORS } from '@/lib/chartTheme'
+import type { CurrencyCode } from '@/types/common'
+import { ChartFrame } from './ChartFrame'
+
+type Point = {
+  label: string
+  value: number
+}
+
+function HistoryTooltip({
+  active,
+  payload,
+  currency,
+}: {
+  active?: boolean
+  payload?: Array<{ payload: Point }>
+  currency: CurrencyCode
+}) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+
+  return (
+    <div
+      className="rounded-card border px-3 py-2 text-caption shadow-elevated"
+      style={{ backgroundColor: CHART_COLORS.tooltipBg, borderColor: CHART_COLORS.tooltipBorder }}
+    >
+      <p className="text-text-muted">{point.label}</p>
+      <p className="mt-0.5 text-body font-semibold tabular-nums text-text-primary">
+        {formatCurrency(point.value, currency)}
+      </p>
+    </div>
+  )
+}
+
+const AXIS_TICK = { fontSize: 11, fill: CHART_COLORS.axis }
+
+export function PortfolioHistoryChart({ months = 12 }: { months?: number }) {
+  const { currency } = useLayout()
+  const { data, isPending, isError, refetch } = usePortfolioHistory(currency, months)
+
+  const points = useMemo<Point[]>(
+    () =>
+      (data ?? []).map((entry) => ({
+        label: formatMonthLabel(entry.date),
+        value: entry.value,
+      })),
+    [data],
+  )
+
+  return (
+    <ChartFrame
+      title="Evolução do patrimônio"
+      eyebrow={`Últimos ${months} meses`}
+      height={320}
+      isPending={isPending}
+      isError={isError}
+      isEmpty={points.length === 0}
+      onRetry={() => refetch()}
+      emptyTitle="Sem histórico disponível"
+      emptyDescription="A evolução mensal aparecerá aqui quando houver dados."
+      errorDescription="Não foi possível carregar o histórico."
+    >
+      <div
+        className="h-full"
+        role="img"
+        aria-label={`Evolução do patrimônio nos últimos ${points.length} meses`}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="portfolioArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CHART_COLORS.area} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={CHART_COLORS.area} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              stroke={CHART_COLORS.grid}
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="label"
+              tick={AXIS_TICK}
+              tickLine={false}
+              axisLine={{ stroke: CHART_COLORS.axisLine }}
+              interval="preserveStartEnd"
+              minTickGap={24}
+            />
+            <YAxis
+              tick={AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              width={64}
+              tickFormatter={(value: number) => formatCurrencyCompact(value, currency)}
+            />
+            <Tooltip
+              content={<HistoryTooltip currency={currency} />}
+              cursor={{ stroke: CHART_COLORS.axisLine, strokeWidth: 1 }}
+              wrapperStyle={{ outline: 'none' }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={CHART_COLORS.area}
+              strokeWidth={2}
+              fill="url(#portfolioArea)"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartFrame>
+  )
+}

@@ -61,6 +61,31 @@ export function formatNumber(value: number): string {
   return numberFormatter.format(value)
 }
 
+const monthFormatter = new Intl.DateTimeFormat(LOCALE, {
+  month: 'short',
+  timeZone: 'UTC',
+})
+
+/** Converte "YYYY-MM" em rótulo curto, ex.: "jan/25". */
+export function formatMonthLabel(yyyymm: string): string {
+  const [year, month] = yyyymm.split('-').map(Number)
+  if (!year || !month) return yyyymm
+
+  const date = new Date(Date.UTC(year, month - 1, 1))
+  const label = monthFormatter.format(date).replace('.', '').toLowerCase()
+  return `${label}/${String(year).slice(-2)}`
+}
+
+/** Formata datetime ISO em data curta pt-BR, ex.: "28 jun 2026". */
+export function formatDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const day = date.getUTCDate()
+  const month = monthFormatter.format(date).replace('.', '').toLowerCase()
+  return `${day} ${month} ${date.getUTCFullYear()}`
+}
+
 type FormatPercentOptions = {
   signed?: boolean
 }
