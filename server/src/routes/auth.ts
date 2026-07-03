@@ -34,7 +34,7 @@ router.get('/session', (req, res) => {
   const token = cookies[SESSION_COOKIE_NAME]
   const authenticated = Boolean(token && validateSession(token))
 
-  res.json({ authenticated, setupRequired: false })
+  res.json({ authenticated, setupRequired: false, username: authenticated ? user.username : undefined })
 })
 
 router.post('/setup', (req, res) => {

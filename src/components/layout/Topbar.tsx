@@ -53,6 +53,17 @@ function CurrencySelector() {
   )
 }
 
+function UsernameLabel() {
+  const { username } = useAuth()
+  if (!username) return null
+
+  return (
+    <span className="hidden max-w-[10rem] truncate text-caption font-medium text-text-secondary sm:inline">
+      {username}
+    </span>
+  )
+}
+
 function LogoutButton() {
   const { logout } = useAuth()
 
@@ -148,6 +159,7 @@ export function Topbar() {
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <UpdatedIndicator />
           <CurrencySelector />
+          <UsernameLabel />
           <LogoutButton />
         </div>
       </div>

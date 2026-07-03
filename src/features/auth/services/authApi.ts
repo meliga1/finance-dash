@@ -3,6 +3,7 @@ import { http } from '@/services/http'
 export interface SessionStatus {
   authenticated: boolean
   setupRequired: boolean
+  username?: string
 }
 
 // GET /auth/session

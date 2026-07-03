@@ -6,6 +6,7 @@ export type AuthStatus = 'loading' | 'error' | 'setup-required' | 'unauthenticat
 
 type AuthContextValue = {
   status: AuthStatus
+  username?: string
   login: (username: string, password: string) => Promise<void>
   setup: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       status: deriveStatus(isPending, isError, data),
+      username: data?.username,
       login: (username, password) => loginMutation.mutateAsync({ username, password }),
       setup: (username, password) => setupMutation.mutateAsync({ username, password }),
       logout: () => logoutMutation.mutateAsync(),
