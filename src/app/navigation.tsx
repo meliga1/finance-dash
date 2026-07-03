@@ -1,6 +1,6 @@
 import type { ComponentType, SVGProps } from 'react'
 
-export type NavIconName = 'dashboard' | 'assets' | 'history' | 'news'
+export type NavIconName = 'dashboard' | 'assets' | 'history' | 'news' | 'settings'
 
 export type NavItem = {
   to: string
@@ -14,6 +14,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/ativos', label: 'Ativos', icon: 'assets' },
   { to: '/historico', label: 'Histórico', icon: 'history' },
   { to: '/noticias', label: 'Notícias', icon: 'news' },
+  { to: '/configuracoes', label: 'Configurações', icon: 'settings' },
 ]
 
 type IconProps = SVGProps<SVGSVGElement>
@@ -81,9 +82,22 @@ const NewsIcon: ComponentType<IconProps> = (props) => (
   </svg>
 )
 
+const SettingsIcon: ComponentType<IconProps> = (props) => (
+  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" {...props}>
+    <circle cx="10" cy="10" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M10 3.5v1.75M10 14.75v1.75M16.5 10h-1.75M5.25 10H3.5M14.6 5.4l-1.24 1.24M6.64 13.36l-1.24 1.24M14.6 14.6l-1.24-1.24M6.64 6.64 5.4 5.4"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
 export const NAV_ICONS: Record<NavIconName, ComponentType<IconProps>> = {
   dashboard: DashboardIcon,
   assets: AssetsIcon,
   history: HistoryIcon,
   news: NewsIcon,
+  settings: SettingsIcon,
 }

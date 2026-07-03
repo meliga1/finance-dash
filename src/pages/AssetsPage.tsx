@@ -3,6 +3,8 @@ import { useLayout } from '@/components/layout/layout-context'
 import { useAssets } from '@/features/assets/hooks'
 import { AssetsTable, AssetsTableSkeleton } from '@/components/tables/AssetsTable'
 import { EmptyState, ErrorState } from '@/components/ui'
+import { isErrorCode } from '@/services/http'
+import { ConnectBybitPrompt } from '@/features/portfolio/components/ConnectBybitPrompt'
 
 function WalletIcon() {
   return (
@@ -29,7 +31,7 @@ function StatePanel({ children }: { children: ReactNode }) {
 
 export function AssetsPage() {
   const { currency } = useLayout()
-  const { data, isPending, isError, refetch } = useAssets(currency)
+  const { data, error, isPending, isError, refetch } = useAssets(currency)
 
   function renderContent() {
     if (isPending) {
@@ -37,6 +39,14 @@ export function AssetsPage() {
     }
 
     if (isError) {
+      if (isErrorCode(error, 'not_configured')) {
+        return (
+          <StatePanel>
+            <ConnectBybitPrompt />
+          </StatePanel>
+        )
+      }
+
       return (
         <StatePanel>
           <ErrorState

@@ -5,6 +5,8 @@ import { useAssets } from '@/features/assets/hooks'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { getAssetColor, CHART_COLORS } from '@/lib/chartTheme'
 import type { CurrencyCode } from '@/types/common'
+import { isErrorCode } from '@/services/http'
+import { ConnectBybitPrompt } from '@/features/portfolio/components/ConnectBybitPrompt'
 import { ChartFrame } from './ChartFrame'
 
 type Slice = {
@@ -69,7 +71,7 @@ function Legend({ slices }: { slices: Slice[] }) {
 
 export function AllocationPieChart() {
   const { currency } = useLayout()
-  const { data, isPending, isError, refetch } = useAssets(currency)
+  const { data, error, isPending, isError, refetch } = useAssets(currency)
 
   const slices = useMemo<Slice[]>(
     () =>
@@ -96,6 +98,7 @@ export function AllocationPieChart() {
       isPending={isPending}
       isError={isError}
       isEmpty={slices.length === 0}
+      notConfigured={isErrorCode(error, 'not_configured') ? <ConnectBybitPrompt /> : undefined}
       onRetry={() => refetch()}
       emptyTitle="Nenhum ativo para distribuir"
       emptyDescription="Adicione posições para ver a alocação da carteira."

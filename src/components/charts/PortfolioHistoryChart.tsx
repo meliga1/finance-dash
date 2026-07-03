@@ -13,6 +13,8 @@ import { usePortfolioHistory } from '@/features/portfolio/hooks'
 import { formatCurrency, formatCurrencyCompact, formatMonthLabel } from '@/lib/formatters'
 import { CHART_COLORS } from '@/lib/chartTheme'
 import type { CurrencyCode } from '@/types/common'
+import { isErrorCode } from '@/services/http'
+import { ConnectBybitPrompt } from '@/features/portfolio/components/ConnectBybitPrompt'
 import { ChartFrame } from './ChartFrame'
 
 type Point = {
@@ -49,7 +51,7 @@ const AXIS_TICK = { fontSize: 11, fill: CHART_COLORS.axis }
 
 export function PortfolioHistoryChart({ months = 12 }: { months?: number }) {
   const { currency } = useLayout()
-  const { data, isPending, isError, refetch } = usePortfolioHistory(currency, months)
+  const { data, error, isPending, isError, refetch } = usePortfolioHistory(currency, months)
 
   const points = useMemo<Point[]>(
     () =>
@@ -68,6 +70,7 @@ export function PortfolioHistoryChart({ months = 12 }: { months?: number }) {
       isPending={isPending}
       isError={isError}
       isEmpty={points.length === 0}
+      notConfigured={isErrorCode(error, 'not_configured') ? <ConnectBybitPrompt /> : undefined}
       onRetry={() => refetch()}
       emptyTitle="Sem histórico disponível"
       emptyDescription="A evolução mensal aparecerá aqui quando houver dados."

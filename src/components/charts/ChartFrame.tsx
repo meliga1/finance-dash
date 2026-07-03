@@ -8,6 +8,8 @@ export type ChartFrameProps = {
   isPending: boolean
   isError: boolean
   isEmpty: boolean
+  /** Renderizado no lugar do erro genérico quando a causa é falta de conexão com a Bybit. */
+  notConfigured?: ReactNode
   onRetry?: () => void
   /** Altura da área do gráfico (px). Usada também pelo skeleton. */
   height?: number
@@ -27,6 +29,7 @@ export function ChartFrame({
   isPending,
   isError,
   isEmpty,
+  notConfigured,
   onRetry,
   height = 300,
   emptyTitle = 'Sem dados para exibir',
@@ -41,6 +44,7 @@ export function ChartFrame({
     }
 
     if (isError) {
+      if (notConfigured) return notConfigured
       return <ErrorState description={errorDescription} onRetry={onRetry} />
     }
 

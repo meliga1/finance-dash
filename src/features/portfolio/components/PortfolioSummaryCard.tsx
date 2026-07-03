@@ -2,6 +2,8 @@ import { useLayout } from '@/components/layout/layout-context'
 import { usePortfolioSummary } from '@/features/portfolio/hooks'
 import { Card, ChangeIndicator, EmptyState, ErrorState, Skeleton, StatCard } from '@/components/ui'
 import { formatCurrency } from '@/lib/formatters'
+import { isErrorCode } from '@/services/http'
+import { ConnectBybitPrompt } from '@/features/portfolio/components/ConnectBybitPrompt'
 
 function HeroSkeleton() {
   return (
@@ -15,7 +17,7 @@ function HeroSkeleton() {
 
 export function PortfolioSummaryCard() {
   const { currency } = useLayout()
-  const { data, isPending, isError, refetch } = usePortfolioSummary(currency)
+  const { data, error, isPending, isError, refetch } = usePortfolioSummary(currency)
 
   if (isPending) {
     return (
@@ -27,6 +29,14 @@ export function PortfolioSummaryCard() {
   }
 
   if (isError) {
+    if (isErrorCode(error, 'not_configured')) {
+      return (
+        <div className="rounded-card border border-border-subtle bg-surface shadow-card">
+          <ConnectBybitPrompt />
+        </div>
+      )
+    }
+
     return (
       <div className="rounded-card border border-border-subtle bg-surface shadow-card">
         <ErrorState
