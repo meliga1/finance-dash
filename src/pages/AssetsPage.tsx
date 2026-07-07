@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLayout } from '@/components/layout/layout-context'
 import { useAssets } from '@/features/assets/hooks'
+import { ManageAssetsCard } from '@/features/assets/components'
 import { AssetsTable, AssetsTableSkeleton } from '@/components/tables/AssetsTable'
 import { EmptyState, ErrorState } from '@/components/ui'
 import { isErrorCode } from '@/services/http'
@@ -79,6 +80,7 @@ export function AssetsPage() {
       <p className="max-w-2xl text-body text-text-secondary">
         Carteira de ativos com posições, preços e participação de cada um no total.
       </p>
+      <ManageAssetsCard />
       {renderContent()}
     </div>
   )

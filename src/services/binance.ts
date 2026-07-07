@@ -6,16 +6,18 @@ export interface Ticker24hr {
   priceChangePercent: string
 }
 
-// GET https://api.binance.com/api/v3/ticker/24hr?symbols=[...]
-export async function fetchTickers(symbols: string[]): Promise<Ticker24hr[]> {
-  const params = new URLSearchParams({ symbols: JSON.stringify(symbols) })
-  const response = await fetch(`${BINANCE_API_URL}/ticker/24hr?${params}`)
-
-  if (!response.ok) {
-    throw new Error(`Binance request failed: ${response.status}`)
+// GET https://api.binance.com/api/v3/ticker/24hr?symbol=... — um símbolo por
+// vez (em vez do parâmetro batch `symbols=[...]`) porque os ativos rastreados
+// podem incluir moedas sem par direto na Binance; aqui a falha de uma não
+// derruba a cotação das demais. Retorna null nesse caso.
+export async function fetchTicker(symbol: string): Promise<Ticker24hr | null> {
+  try {
+    const response = await fetch(`${BINANCE_API_URL}/ticker/24hr?symbol=${symbol}`)
+    if (!response.ok) return null
+    return (await response.json()) as Ticker24hr
+  } catch {
+    return null
   }
-
-  return response.json() as Promise<Ticker24hr[]>
 }
 
 export interface KlinePoint {

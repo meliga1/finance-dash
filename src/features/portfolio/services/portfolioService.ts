@@ -5,7 +5,7 @@ import type {
   HistoryPeriod,
 } from '@/features/portfolio/types'
 import { getAssets } from '@/features/assets/services'
-import { ASSET_METADATA } from '@/features/assets/holdings'
+import { fetchTrackedAssets } from '@/features/assets/services/assetsApi'
 import { fetchLiveHoldings } from '@/services/portfolioApi'
 import { fetchKlines, type KlineInterval } from '@/services/binance'
 import { fetchUsdToBrlRate } from '@/services/exchangeRate'
@@ -17,7 +17,7 @@ const round2 = (value: number) => Math.round(value * 100) / 100
 export async function getPortfolioSummary(
   currency: CurrencyCode,
 ): Promise<PortfolioSummary> {
-  const assets = await getAssets(currency)
+  const [assets, trackedAssets] = await Promise.all([getAssets(currency), fetchTrackedAssets()])
 
   const totalValue = round2(assets.reduce((sum, asset) => sum + asset.totalValue, 0))
   const changeAbsolute = round2(
@@ -28,7 +28,7 @@ export async function getPortfolioSummary(
     previousValue !== 0 ? round2((changeAbsolute / previousValue) * 100) : 0
 
   const averageBuyPriceBySymbol = new Map(
-    ASSET_METADATA.map((metadata) => [metadata.symbol, metadata.averageBuyPriceBRL]),
+    trackedAssets.map((metadata) => [metadata.symbol, metadata.averageBuyPriceBRL]),
   )
   const costBasisBRL = assets.reduce(
     (sum, asset) => sum + asset.quantity * (averageBuyPriceBySymbol.get(asset.symbol) ?? 0),
@@ -65,25 +65,40 @@ export async function getPortfolioHistory(
   limit = 12,
 ): Promise<PortfolioHistoryPoint[]> {
   const interval = PERIOD_TO_INTERVAL[period]
-  const [liveHoldings, klinesByAsset] = await Promise.all([
+  const trackedAssets = await fetchTrackedAssets()
+
+  const [liveHoldings, klinesResults] = await Promise.all([
     fetchLiveHoldings(),
-    Promise.all(
-      ASSET_METADATA.map((metadata) => fetchKlines(`${metadata.symbol}BRL`, interval, limit)),
+    Promise.allSettled(
+      trackedAssets.map((metadata) => fetchKlines(`${metadata.symbol}BRL`, interval, limit)),
     ),
   ])
 
   const quantityBySymbol = new Map(liveHoldings.map((holding) => [holding.symbol, holding.quantity]))
 
-  const pointCount = Math.min(...klinesByAsset.map((klines) => klines.length))
+  // Ativo rastreado sem candles BRL na Binance (ex.: sem par direto) —
+  // ignorado do histórico em vez de derrubar o gráfico inteiro.
+  const klinesByAsset = trackedAssets.flatMap((metadata, index) => {
+    const result = klinesResults[index]
+    if (result.status === 'rejected') {
+      console.warn(`Sem histórico disponível para ${metadata.symbol} — ignorado.`)
+      return []
+    }
+    return [{ symbol: metadata.symbol, klines: result.value }]
+  })
+
+  if (klinesByAsset.length === 0) return []
+
+  const pointCount = Math.min(...klinesByAsset.map((entry) => entry.klines.length))
 
   const historyBRL: PortfolioHistoryPoint[] = Array.from({ length: pointCount }, (_, index) => {
-    const value = klinesByAsset.reduce((sum, klines, assetIndex) => {
-      const point = klines[klines.length - pointCount + index]
-      const quantity = quantityBySymbol.get(ASSET_METADATA[assetIndex].symbol) ?? 0
+    const value = klinesByAsset.reduce((sum, entry) => {
+      const point = entry.klines[entry.klines.length - pointCount + index]
+      const quantity = quantityBySymbol.get(entry.symbol) ?? 0
       return sum + point.close * quantity
     }, 0)
 
-    const referenceKlines = klinesByAsset[0]
+    const referenceKlines = klinesByAsset[0].klines
     const openTime = referenceKlines[referenceKlines.length - pointCount + index].openTime
     const label = new Date(openTime).toISOString()
 

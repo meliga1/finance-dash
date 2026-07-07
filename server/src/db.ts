@@ -33,6 +33,13 @@ export function initDb(): void {
       created_at TEXT NOT NULL,
       expires_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS assets (
+      symbol TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      average_buy_price_brl REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `)
 }
 
@@ -109,4 +116,45 @@ export function upsertSettings(apiKeyEnc: string, apiSecretEnc: string): void {
        bybit_api_secret_enc = excluded.bybit_api_secret_enc,
        updated_at = excluded.updated_at`,
   ).run(apiKeyEnc, apiSecretEnc, new Date().toISOString())
+}
+
+export interface AssetRow {
+  symbol: string
+  name: string
+  average_buy_price_brl: number
+  created_at: string
+}
+
+export function listAssets(): AssetRow[] {
+  return db.prepare('SELECT * FROM assets ORDER BY created_at ASC').all() as unknown as AssetRow[]
+}
+
+export function getAsset(symbol: string): AssetRow | undefined {
+  return db.prepare('SELECT * FROM assets WHERE symbol = ?').get(symbol) as AssetRow | undefined
+}
+
+// Usado pelo cadastro manual (rota POST): sobrescreve nome/preço médio se o
+// ativo já existir.
+export function upsertAsset(symbol: string, name: string, averageBuyPriceBRL: number): void {
+  db.prepare(
+    `INSERT INTO assets (symbol, name, average_buy_price_brl, created_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT (symbol) DO UPDATE SET
+       name = excluded.name,
+       average_buy_price_brl = excluded.average_buy_price_brl`,
+  ).run(symbol, name, averageBuyPriceBRL, new Date().toISOString())
+}
+
+// Usado pela descoberta automática via Bybit: só registra o ativo na primeira
+// vez que aparece, sem sobrescrever nome/preço médio já definidos pelo usuário.
+export function insertAssetIfMissing(symbol: string, name: string): void {
+  db.prepare(
+    `INSERT INTO assets (symbol, name, average_buy_price_brl, created_at)
+     VALUES (?, ?, 0, ?)
+     ON CONFLICT (symbol) DO NOTHING`,
+  ).run(symbol, name, new Date().toISOString())
+}
+
+export function deleteAsset(symbol: string): void {
+  db.prepare('DELETE FROM assets WHERE symbol = ?').run(symbol)
 }

@@ -20,3 +20,9 @@ export interface Holding {
 export interface HoldingsResponse {
   holdings: Holding[]
 }
+
+export interface Asset {
+  symbol: string
+  name: string
+  averageBuyPriceBRL: number
+}
