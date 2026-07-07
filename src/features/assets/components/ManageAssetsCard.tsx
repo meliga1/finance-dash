@@ -1,11 +1,84 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useTrackedAssets, useAddAsset, useRemoveAsset } from '@/features/assets/hooks'
+import {
+  useTrackedAssets,
+  useAvailableCoins,
+  useAddAsset,
+  useRemoveAsset,
+} from '@/features/assets/hooks'
 import { Button, Card, CardHeader, Skeleton } from '@/components/ui'
 import { formatCurrency } from '@/lib/formatters'
 
 const inputClass =
   'h-10 w-full rounded-card border border-border-subtle bg-surface-raised px-3 text-body text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-teal'
+
+const MAX_SUGGESTIONS = 8
+
+function CoinPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string
+  onSelect: (symbol: string) => void
+}) {
+  const { data: coins, isPending } = useAvailableCoins()
+  const [query, setQuery] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  const suggestions = query
+    ? (coins ?? []).filter((coin) => coin.includes(query.toUpperCase())).slice(0, MAX_SUGGESTIONS)
+    : []
+
+  function select(symbol: string) {
+    onSelect(symbol)
+    setQuery(symbol)
+    setIsOpen(false)
+  }
+
+  return (
+    <div className="relative">
+      <input
+        id="assetSymbol"
+        type="text"
+        placeholder="Buscar moeda (ex.: BTC)"
+        autoComplete="off"
+        required
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          if (selected) onSelect('')
+          setIsOpen(true)
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        className={inputClass}
+      />
+
+      {isOpen && query && (
+        <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-card border border-border bg-surface-raised shadow-elevated">
+          {isPending ? (
+            <li className="px-3 py-2 text-caption text-text-secondary">Carregando…</li>
+          ) : suggestions.length === 0 ? (
+            <li className="px-3 py-2 text-caption text-text-secondary">Nenhuma moeda encontrada</li>
+          ) : (
+            suggestions.map((coin) => (
+              <li key={coin}>
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => select(coin)}
+                  className="block w-full px-3 py-2 text-left text-body text-text-primary hover:bg-surface-overlay"
+                >
+                  {coin}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 export function ManageAssetsCard() {
   const { data: trackedAssets, isPending } = useTrackedAssets()
@@ -16,31 +89,35 @@ export function ManageAssetsCard() {
   const [name, setName] = useState('')
   const [averageBuyPrice, setAverageBuyPrice] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [formKey, setFormKey] = useState(0)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
 
+    if (!symbol) {
+      setError('Escolha uma moeda na busca antes de adicionar.')
+      return
+    }
+
     try {
       await addMutation.mutateAsync({
-        symbol: symbol.trim(),
+        symbol,
         name: name.trim() || undefined,
         averageBuyPriceBRL: averageBuyPrice ? Number(averageBuyPrice) : 0,
       })
       setSymbol('')
       setName('')
       setAverageBuyPrice('')
+      setFormKey((key) => key + 1) // reseta a busca da moeda (estado interno do CoinPicker)
     } catch {
-      setError('Não foi possível adicionar. Confira o símbolo (ex.: BTC, ETH) e tente de novo.')
+      setError('Não foi possível adicionar. Tente de novo.')
     }
   }
 
   return (
     <Card>
-      <CardHeader
-        eyebrow="Ativos rastreados"
-        title="Adicionar uma moeda"
-      />
+      <CardHeader eyebrow="Ativos rastreados" title="Adicionar uma moeda" />
 
       <p className="mb-4 text-caption text-text-secondary">
         Moedas com saldo na sua conta Bybit aparecem aqui automaticamente. Adicione manualmente
@@ -48,19 +125,11 @@ export function ManageAssetsCard() {
       </p>
 
       <form className="mb-6 flex flex-wrap items-end gap-3" onSubmit={handleSubmit}>
-        <div className="w-28">
+        <div className="w-48">
           <label htmlFor="assetSymbol" className="mb-1 block text-caption text-text-secondary">
-            Símbolo
+            Moeda
           </label>
-          <input
-            id="assetSymbol"
-            type="text"
-            placeholder="BTC"
-            required
-            value={symbol}
-            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-            className={inputClass}
-          />
+          <CoinPicker key={formKey} selected={symbol} onSelect={setSymbol} />
         </div>
 
         <div className="w-40">
@@ -108,8 +177,7 @@ export function ManageAssetsCard() {
             <li key={asset.symbol} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-body text-text-primary">
-                  {asset.name}{' '}
-                  <span className="text-text-muted">{asset.symbol}</span>
+                  {asset.name} <span className="text-text-muted">{asset.symbol}</span>
                 </p>
                 <p className="text-caption text-text-secondary">
                   Preço médio: {formatCurrency(asset.averageBuyPriceBRL)}

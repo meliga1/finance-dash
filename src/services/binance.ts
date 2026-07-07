@@ -20,6 +20,29 @@ export async function fetchTicker(symbol: string): Promise<Ticker24hr | null> {
   }
 }
 
+// GET https://api.binance.com/api/v3/exchangeInfo — usado só para listar as
+// moedas disponíveis para busca ao adicionar um ativo (nenhum preço aqui).
+// Filtra pelos pares USDT porque é o quote asset com mais cobertura, então dá
+// a lista mais completa de moedas negociáveis.
+export async function fetchAvailableCoins(): Promise<string[]> {
+  const response = await fetch(`${BINANCE_API_URL}/exchangeInfo?permissions=SPOT`)
+  if (!response.ok) {
+    throw new Error(`Binance exchangeInfo request failed: ${response.status}`)
+  }
+
+  const data = (await response.json()) as {
+    symbols: Array<{ baseAsset: string; quoteAsset: string; status: string }>
+  }
+
+  const baseAssets = new Set(
+    data.symbols
+      .filter((symbol) => symbol.quoteAsset === 'USDT' && symbol.status === 'TRADING')
+      .map((symbol) => symbol.baseAsset),
+  )
+
+  return Array.from(baseAssets).sort()
+}
+
 export interface KlinePoint {
   openTime: number
   close: number
