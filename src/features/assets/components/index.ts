@@ -1,1 +1,1 @@
-export { ManageAssetsCard } from './ManageAssetsCard'
+export { CoinPicker } from './CoinPicker'
