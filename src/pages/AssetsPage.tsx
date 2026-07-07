@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLayout } from '@/components/layout/layout-context'
 import { useAssets } from '@/features/assets/hooks'
+import { CoinPicker } from '@/features/assets/components'
 import { AssetsTable, AssetsTableSkeleton } from '@/components/tables/AssetsTable'
 import { EmptyState, ErrorState } from '@/components/ui'
 import { isErrorCode } from '@/services/http'
@@ -76,9 +77,12 @@ export function AssetsPage() {
 
   return (
     <div className="space-y-6">
-      <p className="max-w-2xl text-body text-text-secondary">
-        Carteira de ativos com posições, preços e participação de cada um no total.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <p className="max-w-2xl text-body text-text-secondary">
+          Carteira de ativos com posições, preços e participação de cada um no total.
+        </p>
+        <CoinPicker />
+      </div>
       {renderContent()}
     </div>
   )

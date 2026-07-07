@@ -7,6 +7,7 @@ import { requireAuth } from './auth'
 import authRouter from './routes/auth'
 import settingsRouter from './routes/settings'
 import portfolioRouter from './routes/portfolio'
+import assetsRouter from './routes/assets'
 
 initDb()
 
@@ -21,6 +22,7 @@ app.use(express.json())
 app.use('/api/auth', authRouter)
 app.use('/api/settings', requireAuth, settingsRouter)
 app.use('/api/portfolio', requireAuth, portfolioRouter)
+app.use('/api/assets', requireAuth, assetsRouter)
 
 if (config.isProduction) {
   const publicDir = path.join(__dirname, 'public')

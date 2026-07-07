@@ -1,2 +1,6 @@
 export { useAssets } from './useAssets'
+export { useTrackedAssets } from './useTrackedAssets'
+export { useAvailableCoins } from './useAvailableCoins'
+export { useAddAsset } from './useAddAsset'
+export { useRemoveAsset } from './useRemoveAsset'
 export { assetsKeys } from './keys'

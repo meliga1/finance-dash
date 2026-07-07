@@ -1,8 +1,8 @@
 import type { CurrencyCode } from '@/types/common'
 import type { Asset } from '@/features/assets/types'
-import { fetchTickers } from '@/services/binance'
+import { fetchTicker } from '@/services/binance'
 import { fetchLiveHoldings } from '@/services/portfolioApi'
-import { ASSET_METADATA } from '@/features/assets/holdings'
+import { fetchTrackedAssets } from './assetsApi'
 
 const round2 = (value: number) => Math.round(value * 100) / 100
 const round1 = (value: number) => Math.round(value * 10) / 10
@@ -14,29 +14,27 @@ function pairSymbol(baseSymbol: string, currency: CurrencyCode): string {
   return currency === 'BRL' ? `${baseSymbol}BRL` : `${baseSymbol}USDT`
 }
 
-// GET /assets?currency=BRL — quantidade real via Bybit + cotações reais via
-// Binance (ticker/24hr)
+// GET /assets?currency=BRL — ativos rastreados (cadastrados manualmente ou
+// descobertos via saldo na Bybit) + quantidade real via Bybit + cotações
+// reais via Binance (ticker/24hr)
 export async function getAssets(currency: CurrencyCode): Promise<Asset[]> {
-  const pairsToFetch = ASSET_METADATA.filter(
-    (metadata) => !(metadata.symbol === 'USDT' && currency === 'USD'),
-  ).map((metadata) => pairSymbol(metadata.symbol, currency))
+  const trackedAssets = await fetchTrackedAssets()
+
+  const pairsToFetch = trackedAssets
+    .filter((metadata) => !(metadata.symbol === 'USDT' && currency === 'USD'))
+    .map((metadata) => pairSymbol(metadata.symbol, currency))
 
   const [liveHoldings, tickers] = await Promise.all([
     fetchLiveHoldings(),
-    fetchTickers(pairsToFetch),
+    Promise.all(pairsToFetch.map((symbol) => fetchTicker(symbol))),
   ])
 
   const quantityBySymbol = new Map(liveHoldings.map((holding) => [holding.symbol, holding.quantity]))
-  const knownSymbols = new Set(ASSET_METADATA.map((metadata) => metadata.symbol))
-  for (const holding of liveHoldings) {
-    if (!knownSymbols.has(holding.symbol)) {
-      console.warn(`Saldo na Bybit para ativo não rastreado: ${holding.symbol} — ignorado.`)
-    }
-  }
+  const bySymbol = new Map(
+    tickers.filter((ticker) => ticker !== null).map((ticker) => [ticker.symbol, ticker]),
+  )
 
-  const bySymbol = new Map(tickers.map((ticker) => [ticker.symbol, ticker]))
-
-  const withValue = ASSET_METADATA.map((metadata) => {
+  const withValue = trackedAssets.flatMap((metadata) => {
     let currentPrice: number
     let changePercentage: number
 
@@ -46,7 +44,11 @@ export async function getAssets(currency: CurrencyCode): Promise<Asset[]> {
     } else {
       const ticker = bySymbol.get(pairSymbol(metadata.symbol, currency))
       if (!ticker) {
-        throw new Error(`Sem cotação disponível para ${metadata.symbol}`)
+        // Ativo rastreado sem par correspondente na Binance (ex.: moeda sem
+        // par BRL/USDT direto) — não dá pra precificar, então fica de fora
+        // em vez de derrubar a lista inteira.
+        console.warn(`Sem cotação disponível para ${metadata.symbol} — ignorado.`)
+        return []
       }
       currentPrice = Number(ticker.lastPrice)
       changePercentage = round2(Number(ticker.priceChangePercent))
@@ -56,7 +58,7 @@ export async function getAssets(currency: CurrencyCode): Promise<Asset[]> {
     const totalValue = round2(quantity * currentPrice)
     const changeAbsolute = round2(totalValue * (changePercentage / 100))
 
-    return { ...metadata, quantity, currentPrice, totalValue, changePercentage, changeAbsolute }
+    return [{ ...metadata, quantity, currentPrice, totalValue, changePercentage, changeAbsolute }]
   })
 
   const total = round2(withValue.reduce((sum, item) => sum + item.totalValue, 0))
@@ -66,7 +68,7 @@ export async function getAssets(currency: CurrencyCode): Promise<Asset[]> {
   )
 
   // Corrige o desvio de arredondamento no maior ativo para somar exatamente 100%.
-  if (total !== 0) {
+  if (total !== 0 && withValue.length > 0) {
     const largestIndex = withValue.reduce(
       (maxIndex, item, index, arr) =>
         item.totalValue > arr[maxIndex].totalValue ? index : maxIndex,
