@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   useTrackedAssets,
@@ -8,12 +8,29 @@ import {
 } from '@/features/assets/hooks'
 import { Button, Card, CardHeader, Skeleton } from '@/components/ui'
 import { formatCurrency } from '@/lib/formatters'
+import { cn } from '@/lib/cn'
 
 const inputClass =
   'h-10 w-full rounded-card border border-border-subtle bg-surface-raised px-3 text-body text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-teal'
 
 const MAX_SUGGESTIONS = 8
 
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-4 shrink-0">
+      <path
+        d="m6 9 6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+// Botão de "moeda" que vira campo de busca com sugestões ao ser clicado —
+// fecha de volta ao selecionar uma moeda ou ao perder o foco.
 function CoinPicker({
   selected,
   onSelect,
@@ -22,60 +39,75 @@ function CoinPicker({
   onSelect: (symbol: string) => void
 }) {
   const { data: coins, isPending } = useAvailableCoins()
+  const [isEditing, setIsEditing] = useState(false)
   const [query, setQuery] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const suggestions = query
-    ? (coins ?? []).filter((coin) => coin.includes(query.toUpperCase())).slice(0, MAX_SUGGESTIONS)
-    : []
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus()
+  }, [isEditing])
+
+  const suggestions = (coins ?? [])
+    .filter((coin) => coin.includes(query.toUpperCase()))
+    .slice(0, MAX_SUGGESTIONS)
 
   function select(symbol: string) {
     onSelect(symbol)
-    setQuery(symbol)
-    setIsOpen(false)
+    setIsEditing(false)
+  }
+
+  if (!isEditing) {
+    return (
+      <button
+        id="assetSymbol"
+        type="button"
+        onClick={() => {
+          setQuery('')
+          setIsEditing(true)
+        }}
+        className={cn(inputClass, 'flex items-center justify-between gap-2 text-left')}
+      >
+        <span className={selected ? 'text-text-primary' : 'text-text-muted'}>
+          {selected || 'Selecionar moeda'}
+        </span>
+        <ChevronDownIcon />
+      </button>
+    )
   }
 
   return (
     <div className="relative">
       <input
-        id="assetSymbol"
+        ref={inputRef}
         type="text"
         placeholder="Buscar moeda (ex.: BTC)"
         autoComplete="off"
-        required
         value={query}
-        onChange={(event) => {
-          setQuery(event.target.value)
-          if (selected) onSelect('')
-          setIsOpen(true)
-        }}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => setIsOpen(false)}
+        onChange={(event) => setQuery(event.target.value)}
+        onBlur={() => setIsEditing(false)}
         className={inputClass}
       />
 
-      {isOpen && query && (
-        <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-card border border-border bg-surface-raised shadow-elevated">
-          {isPending ? (
-            <li className="px-3 py-2 text-caption text-text-secondary">Carregando…</li>
-          ) : suggestions.length === 0 ? (
-            <li className="px-3 py-2 text-caption text-text-secondary">Nenhuma moeda encontrada</li>
-          ) : (
-            suggestions.map((coin) => (
-              <li key={coin}>
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => select(coin)}
-                  className="block w-full px-3 py-2 text-left text-body text-text-primary hover:bg-surface-overlay"
-                >
-                  {coin}
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-      )}
+      <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-card border border-border bg-surface-raised shadow-elevated">
+        {isPending ? (
+          <li className="px-3 py-2 text-caption text-text-secondary">Carregando…</li>
+        ) : suggestions.length === 0 ? (
+          <li className="px-3 py-2 text-caption text-text-secondary">Nenhuma moeda encontrada</li>
+        ) : (
+          suggestions.map((coin) => (
+            <li key={coin}>
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => select(coin)}
+                className="block w-full px-3 py-2 text-left text-body text-text-primary hover:bg-surface-overlay"
+              >
+                {coin}
+              </button>
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   )
 }
@@ -89,7 +121,6 @@ export function ManageAssetsCard() {
   const [name, setName] = useState('')
   const [averageBuyPrice, setAverageBuyPrice] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [formKey, setFormKey] = useState(0)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -109,7 +140,6 @@ export function ManageAssetsCard() {
       setSymbol('')
       setName('')
       setAverageBuyPrice('')
-      setFormKey((key) => key + 1) // reseta a busca da moeda (estado interno do CoinPicker)
     } catch {
       setError('Não foi possível adicionar. Tente de novo.')
     }
@@ -129,7 +159,7 @@ export function ManageAssetsCard() {
           <label htmlFor="assetSymbol" className="mb-1 block text-caption text-text-secondary">
             Moeda
           </label>
-          <CoinPicker key={formKey} selected={symbol} onSelect={setSymbol} />
+          <CoinPicker selected={symbol} onSelect={setSymbol} />
         </div>
 
         <div className="w-40">
