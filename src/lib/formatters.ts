@@ -86,6 +86,23 @@ export function formatDate(iso: string): string {
   return `${day} ${month} ${date.getUTCFullYear()}`
 }
 
+/** Formata o início de uma semana (candle 1w da Binance) como intervalo, ex.: "01–07 jul". */
+export function formatWeekRangeLabel(iso: string): string {
+  const start = new Date(iso)
+  if (Number.isNaN(start.getTime())) return iso
+
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + 6)
+
+  const startMonth = monthFormatter.format(start).replace('.', '').toLowerCase()
+  const endMonth = monthFormatter.format(end).replace('.', '').toLowerCase()
+
+  if (startMonth === endMonth) {
+    return `${start.getUTCDate()}–${end.getUTCDate()} ${startMonth}`
+  }
+  return `${start.getUTCDate()} ${startMonth}–${end.getUTCDate()} ${endMonth}`
+}
+
 type FormatPercentOptions = {
   signed?: boolean
 }

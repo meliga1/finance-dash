@@ -26,7 +26,7 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <AllocationPieChart />
-        <PortfolioHistoryChart months={12} />
+        <PortfolioHistoryChart />
       </div>
 
       <section>

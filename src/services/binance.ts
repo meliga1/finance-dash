@@ -23,12 +23,18 @@ export interface KlinePoint {
   close: number
 }
 
-// GET https://api.binance.com/api/v3/klines?symbol=...&interval=1M
-export async function fetchMonthlyKlines(symbol: string, months = 12): Promise<KlinePoint[]> {
+export type KlineInterval = '1d' | '1w' | '1M'
+
+// GET https://api.binance.com/api/v3/klines?symbol=...&interval=...
+export async function fetchKlines(
+  symbol: string,
+  interval: KlineInterval,
+  limit: number,
+): Promise<KlinePoint[]> {
   const params = new URLSearchParams({
     symbol,
-    interval: '1M',
-    limit: String(months),
+    interval,
+    limit: String(limit),
   })
 
   const response = await fetch(`${BINANCE_API_URL}/klines?${params}`)

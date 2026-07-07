@@ -1,9 +1,13 @@
 import type { CurrencyCode } from '@/types/common'
-import type { PortfolioSummary, PortfolioHistoryPoint } from '@/features/portfolio/types'
+import type {
+  PortfolioSummary,
+  PortfolioHistoryPoint,
+  HistoryPeriod,
+} from '@/features/portfolio/types'
 import { getAssets } from '@/features/assets/services'
 import { ASSET_METADATA } from '@/features/assets/holdings'
 import { fetchLiveHoldings } from '@/services/portfolioApi'
-import { fetchMonthlyKlines } from '@/services/binance'
+import { fetchKlines, type KlineInterval } from '@/services/binance'
 import { fetchUsdToBrlRate } from '@/services/exchangeRate'
 
 const round2 = (value: number) => Math.round(value * 100) / 100
@@ -44,25 +48,28 @@ export async function getPortfolioSummary(
   }
 }
 
-function monthLabel(timestamp: number): string {
-  const date = new Date(timestamp)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  return `${year}-${month}`
+const PERIOD_TO_INTERVAL: Record<HistoryPeriod, KlineInterval> = {
+  daily: '1d',
+  weekly: '1w',
+  monthly: '1M',
 }
 
-// GET /portfolio/history?currency=BRL&months=12 — reconstruído a partir dos
-// candles mensais (Binance klines, 1M) de cada ativo multiplicados pela
+// GET /portfolio/history?currency=BRL&period=monthly&limit=12 — reconstruído a
+// partir dos candles do Binance (klines) de cada ativo multiplicados pela
 // quantidade real atual em carteira (Bybit). Assume que a quantidade de hoje
 // foi mantida ao longo de todo o período — mesma simplificação de antes,
 // só que agora com a quantidade vinda ao vivo em vez de fixa.
 export async function getPortfolioHistory(
   currency: CurrencyCode,
-  months = 12,
+  period: HistoryPeriod = 'monthly',
+  limit = 12,
 ): Promise<PortfolioHistoryPoint[]> {
+  const interval = PERIOD_TO_INTERVAL[period]
   const [liveHoldings, klinesByAsset] = await Promise.all([
     fetchLiveHoldings(),
-    Promise.all(ASSET_METADATA.map((metadata) => fetchMonthlyKlines(`${metadata.symbol}BRL`, months))),
+    Promise.all(
+      ASSET_METADATA.map((metadata) => fetchKlines(`${metadata.symbol}BRL`, interval, limit)),
+    ),
   ])
 
   const quantityBySymbol = new Map(liveHoldings.map((holding) => [holding.symbol, holding.quantity]))
@@ -77,7 +84,8 @@ export async function getPortfolioHistory(
     }, 0)
 
     const referenceKlines = klinesByAsset[0]
-    const label = monthLabel(referenceKlines[referenceKlines.length - pointCount + index].openTime)
+    const openTime = referenceKlines[referenceKlines.length - pointCount + index].openTime
+    const label = new Date(openTime).toISOString()
 
     return { date: label, value: round2(value) }
   })

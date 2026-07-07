@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -10,12 +10,52 @@ import {
 } from 'recharts'
 import { useLayout } from '@/components/layout/layout-context'
 import { usePortfolioHistory } from '@/features/portfolio/hooks'
-import { formatCurrency, formatCurrencyCompact, formatMonthLabel } from '@/lib/formatters'
+import { formatCurrency, formatCurrencyCompact } from '@/lib/formatters'
 import { CHART_COLORS } from '@/lib/chartTheme'
 import type { CurrencyCode } from '@/types/common'
+import type { HistoryPeriod } from '@/features/portfolio/types'
+import { PERIOD_OPTIONS, PERIOD_LIMIT, PERIOD_EYEBROW, formatPointLabel } from '@/features/portfolio/historyPeriod'
 import { isErrorCode } from '@/services/http'
 import { ConnectBybitPrompt } from '@/features/portfolio/components/ConnectBybitPrompt'
 import { ChartFrame } from './ChartFrame'
+
+function PeriodToggle({
+  value,
+  onChange,
+}: {
+  value: HistoryPeriod
+  onChange: (period: HistoryPeriod) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Período do histórico"
+      className="inline-flex rounded-card border border-border-subtle bg-surface-raised p-0.5"
+    >
+      {PERIOD_OPTIONS.map((option) => {
+        const isActive = value === option.value
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={isActive}
+            onClick={() => onChange(option.value)}
+            className={[
+              'rounded-[0.45rem] px-2.5 py-1 text-caption font-medium transition-colors',
+              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-teal',
+              isActive
+                ? 'bg-surface-overlay text-text-primary shadow-card'
+                : 'text-text-muted hover:text-text-secondary',
+            ].join(' ')}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 type Point = {
   label: string
@@ -49,23 +89,37 @@ function HistoryTooltip({
 
 const AXIS_TICK = { fontSize: 11, fill: CHART_COLORS.axis }
 
-export function PortfolioHistoryChart({ months = 12 }: { months?: number }) {
+export function PortfolioHistoryChart({
+  period: controlledPeriod,
+  onPeriodChange,
+}: {
+  period?: HistoryPeriod
+  onPeriodChange?: (period: HistoryPeriod) => void
+} = {}) {
   const { currency } = useLayout()
-  const { data, error, isPending, isError, refetch } = usePortfolioHistory(currency, months)
+  const [internalPeriod, setInternalPeriod] = useState<HistoryPeriod>('monthly')
+  const period = controlledPeriod ?? internalPeriod
+  const setPeriod = onPeriodChange ?? setInternalPeriod
+  const { data, error, isPending, isError, refetch } = usePortfolioHistory(
+    currency,
+    period,
+    PERIOD_LIMIT[period],
+  )
 
   const points = useMemo<Point[]>(
     () =>
       (data ?? []).map((entry) => ({
-        label: formatMonthLabel(entry.date),
+        label: formatPointLabel(period, entry.date),
         value: entry.value,
       })),
-    [data],
+    [data, period],
   )
 
   return (
     <ChartFrame
       title="Evolução do patrimônio"
-      eyebrow={`Últimos ${months} meses`}
+      eyebrow={PERIOD_EYEBROW[period]}
+      action={<PeriodToggle value={period} onChange={setPeriod} />}
       height={320}
       isPending={isPending}
       isError={isError}
@@ -73,13 +127,13 @@ export function PortfolioHistoryChart({ months = 12 }: { months?: number }) {
       notConfigured={isErrorCode(error, 'not_configured') ? <ConnectBybitPrompt /> : undefined}
       onRetry={() => refetch()}
       emptyTitle="Sem histórico disponível"
-      emptyDescription="A evolução mensal aparecerá aqui quando houver dados."
+      emptyDescription="A evolução aparecerá aqui quando houver dados."
       errorDescription="Não foi possível carregar o histórico."
     >
       <div
         className="h-full"
         role="img"
-        aria-label={`Evolução do patrimônio nos últimos ${points.length} meses`}
+        aria-label={`Evolução do patrimônio — ${PERIOD_EYEBROW[period]}`}
       >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>

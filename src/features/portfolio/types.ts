@@ -8,8 +8,10 @@ export interface PortfolioSummary {
   currency: CurrencyCode
 }
 
+export type HistoryPeriod = 'daily' | 'weekly' | 'monthly'
+
 // GET /portfolio/history
 export interface PortfolioHistoryPoint {
-  date: string // "YYYY-MM"
+  date: string // ISO datetime
   value: number
 }
