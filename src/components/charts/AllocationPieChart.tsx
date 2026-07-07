@@ -118,7 +118,7 @@ export function AllocationPieChart() {
               nameKey="symbol"
               innerRadius="62%"
               outerRadius="92%"
-              paddingAngle={2}
+              paddingAngle={0}
               stroke="none"
             >
               {slices.map((slice) => (
@@ -128,6 +128,7 @@ export function AllocationPieChart() {
             <Tooltip
               content={<AllocationTooltip currency={currency} />}
               wrapperStyle={{ outline: 'none' }}
+              position={{ x: 0, y: 0 }}
             />
           </PieChart>
         </ResponsiveContainer>
