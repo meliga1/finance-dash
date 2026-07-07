@@ -10,17 +10,24 @@ e saldo real de carteira (Bybit, Unified Trading Account).
    npm install
    cd server && npm install && cd ..
    ```
-2. Crie uma API key na Bybit (Account & Security → API Management →
-   System-generated API Keys) com permissão **somente leitura** — deixe
-   desmarcado Spot/Derivatives Trading, Withdrawal e Transfer. É uma key de
-   **mainnet** (`api.bybit.com`), já que testnet não reflete saldo real.
-3. Copie `server/.env.example` para `server/.env` e preencha
-   `BYBIT_API_KEY`/`BYBIT_API_SECRET` com os valores gerados. Esse arquivo
-   nunca é commitado.
-4. Rode tudo com:
+2. Copie os dois arquivos de ambiente (nenhum dos dois é commitado):
+   ```
+   cp .env.example .env
+   cp server/.env.example server/.env
+   ```
+   O `.env` da raiz é o que diz ao front-end onde está o back-end
+   (`http://localhost:3333/api`) — sem ele o app mostra "Não foi possível
+   conectar".
+3. Rode tudo com:
    ```
    npm run dev:all
    ```
    (ou, em dois terminais separados: `npm run dev` na raiz e
    `npm --prefix server run dev`).
-5. Acesse `http://localhost:5173`.
+4. Acesse `http://localhost:5173`, crie sua conta na tela de setup e, uma
+   vez logado, vá em **Configurações** para cadastrar sua API key da Bybit
+   (Account & Security → API Management → System-generated API Keys,
+   permissão **somente leitura**, sem Spot/Derivatives Trading, Withdrawal
+   ou Transfer marcados — key de **mainnet**, já que testnet não reflete
+   saldo real). A key fica criptografada em `server/data/app.db`, nunca em
+   texto puro num arquivo.
