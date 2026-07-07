@@ -12,7 +12,6 @@ import {
   verifyPassword,
 } from '../auth'
 import { parseCookieHeader } from '../cookies'
-import { config } from '../config'
 
 const router = Router()
 
@@ -20,7 +19,6 @@ function setSessionCookie(res: import('express').Response, token: string, expire
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.isProduction,
     expires: expiresAt,
   })
 }

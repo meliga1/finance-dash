@@ -2,9 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.resolve(__dirname, '..', 'data')
+const DATA_DIR = path.resolve(__dirname, '..', 'data')
 const DB_PATH = path.join(DATA_DIR, 'app.db')
 
 fs.mkdirSync(DATA_DIR, { recursive: true })
